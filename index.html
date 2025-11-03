@@ -6,15 +6,23 @@
 <title>Accès sécurisé</title>
 <style>
 :root{
-  --bg:#070708; --card:#0f1113; --accent:#ff7a18; --accent-2:#ffb56b;
-  --neon-orange: rgba(255,122,24,0.22); --text:#e9eef2; --muted:#96a0aa; --error:#ff3b3b;
+  --bg:#070708;
+  --card:#0f1113;
+  --accent:#ff7a18;
+  --accent-2:#ffb56b;
+  --neon-orange: rgba(255,122,24,0.22);
+  --text:#e9eef2;
+  --muted:#96a0aa;
+  --error:#ff3b3b;
 }
 *{box-sizing:border-box}
 html,body{height:100%}
 body{
-  margin:0; font-family:Inter,system-ui,Arial,sans-serif;
+  margin:0;
+  font-family: Inter, system-ui, Arial, sans-serif;
   background:linear-gradient(180deg,#050507,var(--bg));
-  color:var(--text); display:flex;align-items:center;justify-content:center;padding:24px;
+  color:var(--text);
+  display:flex;align-items:center;justify-content:center;padding:24px;
 }
 .container{
   width:100%;max-width:600px;
@@ -31,7 +39,11 @@ body{
 .lead{margin:6px 0 18px;color:var(--muted);font-size:14px}
 .input-row{display:flex;gap:12px;align-items:center;margin-bottom:12px}
 .input{flex:1;position:relative}
-.real-input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;caret-color: transparent;}
+.real-input{
+  position:absolute;left:0;top:0;width:100%;height:100%;
+  opacity:0; 
+  caret-color: transparent;
+}
 .display{
   width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
   background:rgba(255,255,255,0.02);color:var(--text);font-size:15px;min-height:46px;
@@ -64,97 +76,153 @@ body{
   font-weight:900;font-size:15px;background: linear-gradient(90deg, rgba(255,59,59,0.02), transparent);
   padding:8px;border-radius:8px;margin-top:12px;display:inline-block;
 }
-.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
 @keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-8px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
 .hint{margin-top:12px;color:var(--muted);font-size:13px;background: rgba(255,255,255,0.01);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.01)}
 @media (max-width:520px){ .input-row{flex-direction:column} .btn{width:100%} }
+
+/* curseur clignotant */
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: var(--text);
+  animation: blink 1s steps(1) infinite;
+  vertical-align: middle;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
 </style>
 </head>
 <body>
-<div class="container" role="main" aria-labelledby="title">
-  <h1 id="title" class="title">Accès sécurisé</h1>
-  <p class="lead">Entre le mot de passe pour déverrouiller la page</p>
-  <div class="input-row">
-    <div class="input" style="flex:1">
-      <input id="real" class="real-input" type="password" autocomplete="one-time-code" aria-label="mot de passe">
-      <div id="display" class="display" tabindex="0" role="textbox" aria-label="affichage du mot de passe"></div>
+  <div class="container">
+    <h1 class="title">Accès sécurisé</h1>
+    <p class="lead">Entre le mot de passe pour déverrouiller la page</p>
+
+    <div class="input-row">
+      <div class="input" style="flex:1">
+        <input id="real" class="real-input" type="password" autocomplete="one-time-code">
+        <div id="display" class="display" tabindex="0"></div>
+      </div>
+      <button id="submit" class="btn">Valider</button>
     </div>
-    <button id="submit" class="btn" aria-label="Valider">Valider</button>
+
+    <div class="controls">
+      <label style="display:flex;align-items:center;gap:8px">
+        <input id="show" type="checkbox">Afficher le mot de passe
+      </label>
+    </div>
+
+    <div id="status" class="status"></div>
+
+    <div class="hint">
+      <strong>Indice :</strong> C'est mon prénom avec une majuscule, il y a ensuite / puis ma date de naissance, puis le prénom avec une majuscule d'une personne que j'aime, puis encore un /, le prénom de mon chat avec une majuscule, la 24e lettre de l'alphabet et un !<br>
+      <em>exemple : Gilbert/1983/Gabriel/ProutG!</em>
+    </div>
   </div>
-  <div class="controls">
-    <label style="display:flex;align-items:center;gap:8px"><input id="show" type="checkbox">Afficher le mot de passe</label>
-    <div style="flex:1"></div>
-  </div>
-  <div id="status" class="status" aria-live="polite"></div>
-  <div class="hint">
-    <strong>Indice :</strong> C'est mon prénom avec une majuscule, il y a ensuite / puis ma date de naissance, puis le prénom avec une majuscule d'une personne que j'aime, puis encore un /, le prénom de mon chat avec une majuscule, la 24e lettre de l'alphabet et un !<br>
-    <em>exemple : Gilbert/1983/Gabriel/ProutG!</em>
-  </div>
-</div>
+
 <script>
-const API='https://message-cache-backend.onrender.com';
-const real=document.getElementById('real');
-const display=document.getElementById('display');
-const show=document.getElementById('show');
-const submit=document.getElementById('submit');
-const status=document.getElementById('status');
+const API = 'https://message-cache-backend.onrender.com';
 
-display.addEventListener('click',()=>real.focus());
-display.addEventListener('focus',()=>real.focus());
-real.addEventListener('focus',()=>display.classList.add('focus'));
-real.addEventListener('blur',()=>display.classList.remove('focus'));
-show.addEventListener('change',()=>updateDisplay());
+const real = document.getElementById('real');
+const display = document.getElementById('display');
+const show = document.getElementById('show');
+const submit = document.getElementById('submit');
+const status = document.getElementById('status');
 
-real.addEventListener('input',()=>updateDisplay());
+display.addEventListener('click', ()=> real.focus());
+display.addEventListener('focus', ()=> real.focus());
+real.addEventListener('focus', ()=> display.classList.add('focus'));
+real.addEventListener('blur', ()=> display.classList.remove('focus'));
+
+show.addEventListener('change', ()=> updateDisplay());
 
 function updateDisplay(){
-  display.innerHTML='';
-  const s=real.value||'';
-  const masked=!show.checked;
+  const s = real.value || '';
+  display.innerHTML = '';
+  if(s.length === 0){
+    const caret = document.createElement('span');
+    caret.className = 'caret';
+    display.appendChild(caret);
+    return;
+  }
+  const masked = !show.checked;
   for(let i=0;i<s.length;i++){
     if(masked){
-      const dot=document.createElement('span'); dot.className='dot'; display.appendChild(dot);
+      const dot = document.createElement('span');
+      dot.className = 'dot';
+      display.appendChild(dot);
     } else {
-      const ch=document.createElement('span'); ch.textContent=s[i]; display.appendChild(ch);
+      const ch = document.createElement('span');
+      ch.textContent = s[i];
+      display.appendChild(ch);
     }
   }
-  const caret=document.createElement('span'); caret.textContent=' '; caret.style.width='2px'; display.appendChild(caret);
+  const caret=document.createElement('span');
+  caret.className='caret';
+  display.appendChild(caret);
 }
 
-function rippleAt(e,el){
-  const r=document.createElement('span'); r.className='ripple';
-  const rect=el.getBoundingClientRect();
-  const x=(e.clientX||rect.left+rect.width/2)-rect.left;
-  const y=(e.clientY||rect.top+rect.height/2)-rect.top;
-  r.style.left=x+'px'; r.style.top=y+'px'; el.appendChild(r); setTimeout(()=>r.remove(),700);
+real.addEventListener('input', ()=> updateDisplay());
+
+function rippleAt(e, el){
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const x = (e.clientX || rect.left + rect.width/2) - rect.left;
+  const y = (e.clientY || rect.top + rect.height/2) - rect.top;
+  r.style.left = x + 'px'; r.style.top = y + 'px';
+  el.appendChild(r); setTimeout(()=> r.remove(), 700);
 }
 
-submit.addEventListener('click',async e=>{rippleAt(e,submit); await sendPassword();});
-real.addEventListener('keydown',async e=>{if(e.key==='Enter'){await sendPassword();}});
+submit.addEventListener('click', async (e)=>{
+  rippleAt(e, submit);
+  await sendPassword();
+});
+real.addEventListener('keydown', async (e)=>{
+  if(e.key === 'Enter') { await sendPassword(); }
+});
 
-let busy=false;
+let busy = false;
 async function sendPassword(){
-  if(busy) return; busy=true;
-  status.className='status'; status.textContent='Vérification...';
-  const code=real.value;
-  if(!code){status.textContent='Entre un mot de passe.'; status.className='status error shake'; setTimeout(()=>status.classList.remove('shake'),420); busy=false; return;}
+  if(busy) return;
+  busy = true;
+  status.className = 'status';
+  status.textContent = 'Vérification...';
+  const code = real.value;
+  if(!code){
+    status.textContent = 'Entre un mot de passe.';
+    status.className = 'status error shake';
+    setTimeout(()=> { status.classList.remove('shake'); }, 420);
+    busy = false; return;
+  }
   try{
-    const r=await fetch(API+'/auth',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code})});
-    const j=await r.json();
-    if(r.ok&&j.ok){
-      status.textContent='Accès autorisé. Copie le token ci‑dessous.'; status.className='status ok';
+    const r = await fetch(API + '/auth', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code })
+    });
+    const j = await r.json();
+    if(r.ok && j.ok){
+      status.textContent = 'Accès autorisé. Copie le token ci-dessous.';
+      status.className = 'status ok';
       if(j.token){
-        const t=document.createElement('div'); t.style.marginTop='10px';
-        t.style.padding='10px'; t.style.background='rgba(255,255,255,0.02)';
+        const t = document.createElement('div');
+        t.style.marginTop='10px'; t.style.padding='10px'; t.style.background='rgba(255,255,255,0.02)';
         t.style.borderRadius='8px'; t.style.wordBreak='break-all';
-        t.textContent=j.token; status.appendChild(t);
+        t.textContent = j.token;
+        status.appendChild(t);
       }
     } else {
-      status.textContent=j.error||'mot de passe incorrect, essaie encore 😉'; status.className='status error shake'; setTimeout(()=>status.classList.remove('shake'),420);
+      status.textContent = j.error || 'mot de passe incorrect, essaie encore 😉';
+      status.className = 'status error shake';
+      setTimeout(()=> { status.classList.remove('shake'); }, 420);
     }
-  } catch(err){
-    status.textContent='Erreur réseau. Le serveur est peut-être endormi.'; status.className='status error shake'; setTimeout(()=>status.classList.remove('shake'),420);
-  } finally{busy=false;}
+  }catch(err){
+    status.textContent = 'Erreur réseau. Le serveur est peut-être endormi.';
+    status.className = 'status error shake';
+    setTimeout(()=> { status.classList.remove('shake'); }, 420);
+  } finally { busy = false; }
 }
 </script>
 </body>
