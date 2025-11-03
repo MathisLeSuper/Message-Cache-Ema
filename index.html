@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Accès secret</title>
+<style>
+  :root{
+    --bg:#121317;
+    --card:#1b1d21;
+    --accent:#2dd4bf;
+    --accent-dark:#12b8a4;
+    --text:#e6eef8;
+    --muted:#99a;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{
+    margin:0;
+    font-family:Inter, system-ui, Arial, sans-serif;
+    background:linear-gradient(180deg,var(--bg),#0b0c0f);
+    color:var(--text);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+    padding:20px;
+  }
+
+  .card{
+    width:100%;
+    max-width:420px;
+    background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+    border:1px solid rgba(255,255,255,0.03);
+    padding:28px;
+    border-radius:14px;
+    box-shadow: 0 6px 30px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+    text-align:center;
+  }
+
+  h1{margin:0 0 12px;font-size:20px;font-weight:600}
+  p.lead{margin:0 0 18px;color:var(--muted);font-size:13px}
+
+  .pw-wrap{display:flex;gap:10px;align-items:center;justify-content:center}
+  input[type="password"]{
+    width:60%;
+    padding:10px 12px;
+    border-radius:10px;
+    border:1px solid rgba(255,255,255,0.04);
+    background:rgba(255,255,255,0.02);
+    color:var(--text);
+    outline:none;
+    transition:transform .18s ease, box-shadow .18s ease;
+  }
+  input[type="password"]:focus{transform:translateY(-3px);box-shadow:0 6px 20px rgba(0,0,0,0.6)}
+
+  /* bouton */
+  .btn{
+    position:relative;
+    display:inline-block;
+    padding:10px 16px;
+    border-radius:10px;
+    cursor:pointer;
+    user-select:none;
+    border:0;
+    background:linear-gradient(180deg,var(--accent),var(--accent-dark));
+    color:#072;
+    font-weight:700;
+    letter-spacing:.2px;
+    transition:transform .12s ease, box-shadow .12s ease, filter .12s;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.5);
+    outline: none;
+  }
+
+  .btn:hover{transform:translateY(-4px) scale(1.02); filter:brightness(1.03)}
+  .btn:active{transform:translateY(-1px) scale(.995); box-shadow:0 4px 12px rgba(0,0,0,0.45)}
+
+  /* animation subtle glow */
+  @keyframes glow {
+    0%{box-shadow:0 0 0px rgba(45,212,191,0.0)}
+    50%{box-shadow:0 0 24px rgba(45,212,191,0.12)}
+    100%{box-shadow:0 0 0px rgba(45,212,191,0.0)}
+  }
+  .btn.animate-glow{animation:glow 2.2s infinite ease-in-out}
+
+  /* ripple on click */
+  .ripple{
+    position:absolute;
+    border-radius:50%;
+    transform:translate(-50%,-50%) scale(0.6);
+    opacity:0.6;
+    pointer-events:none;
+    animation:rippleAnim .6s ease-out forwards;
+    background:rgba(255,255,255,0.18);
+  }
+  @keyframes rippleAnim{
+    to{transform:translate(-50%,-50%) scale(3); opacity:0}
+  }
+
+  .status{margin-top:14px;font-size:14px;height:20px}
+  .status.error{color:#ff6b6b}
+  .status.ok{color:#7af5d6}
+
+  footer{margin-top:18px;color:var(--muted);font-size:12px}
+  .hint{font-size:13px;color:var(--muted);margin-top:10px}
+  @media (max-width:480px){ .pw-wrap{flex-direction:column} input[type="password"]{width:100%} .btn{width:100%} }
+</style>
+</head>
+<body>
+  <div class="card" role="main" aria-labelledby="title">
+    <h1 id="title">Accès sécurisé</h1>
+    <p class="lead">Entre le mot de passe pour recevoir le lien privé.</p>
+
+    <div class="pw-wrap" aria-hidden="false">
+      <input id="pw" type="password" placeholder="Mot de passe" aria-label="mot de passe">
+      <button id="submit" class="btn animate-glow" aria-label="entre le mot de passe">entre le mot de passe</button>
+    </div>
+
+    <div id="status" class="status" aria-live="polite"></div>
+    <div id="result" style="display:none;margin-top:12px">
+      <p style="margin:.25rem 0;color:var(--muted)">Accès autorisé. Copie le token ci-dessous :</p>
+      <code id="token" style="display:block;padding:10px;background:rgba(255,255,255,0.02);border-radius:8px;word-break:break-all"></code>
+    </div>
+
+    <div class="hint">Astuce: si tu veux cacher vraiment le secret, je peux ajouter le backend plus tard.</div>
+    <footer>Version test</footer>
+  </div>
+
+<script>
+  // Mot de passe temporaire (pour test uniquement)
+  const PASSWORD = 'Code123!';
+
+  const submit = document.getElementById('submit');
+  const input = document.getElementById('pw');
+  const status = document.getElementById('status');
+  const result = document.getElementById('result');
+  const tokenEl = document.getElementById('token');
+
+  // focus sur l'input au chargement
+  input.focus();
+
+  // ripple creation
+  function rippleAt(e, el){
+    const r = document.createElement('span');
+    r.className = 'ripple';
+    const rect = el.getBoundingClientRect();
+    const x = (e.clientX || rect.left + rect.width/2) - rect.left;
+    const y = (e.clientY || rect.top + rect.height/2) - rect.top;
+    r.style.left = x + 'px';
+    r.style.top = y + 'px';
+    el.appendChild(r);
+    setTimeout(()=> r.remove(), 700);
+  }
+
+  submit.addEventListener('click', (e)=> {
+    rippleAt(e, submit);
+    check();
+  });
+
+  // allow enter key
+  input.addEventListener('keydown', (e)=> {
+    if(e.key === 'Enter') { e.preventDefault(); check(); }
+  });
+
+  // small client-side attempt counter for UX
+  let attempts = 0;
+  function check(){
+    const val = input.value;
+    attempts++;
+    // micro delay to show animation
+    submit.disabled = true;
+    submit.style.opacity = .9;
+    setTimeout(()=> {
+      submit.disabled = false;
+      submit.style.opacity = 1;
+    }, 300);
+
+    if(val === PASSWORD){
+      status.textContent = 'Accès autorisé.';
+      status.className = 'status ok';
+      // génère un token factice pour l'exemple
+      const t = 'tkn-' + Math.random().toString(36).slice(2,12);
+      tokenEl.textContent = t;
+      result.style.display = 'block';
+      // animation visuelle
+      submit.classList.remove('animate-glow');
+      submit.style.transform = 'scale(0.98) translateY(0)';
+      submit.style.boxShadow = '0 6px 22px rgba(0,0,0,0.5)';
+    } else {
+      // feedback d'erreur
+      status.textContent = 'mot de passe incorrect, essaie encore 😉';
+      status.className = 'status error';
+      result.style.display = 'none';
+      // petit shake
+      const c = document.querySelector('.card');
+      c.animate([
+        { transform: 'translateX(0)' },
+        { transform: 'translateX(-8px)' },
+        { transform: 'translateX(6px)' },
+        { transform: 'translateX(-4px)' },
+        { transform: 'translateX(0)' }
+      ], { duration: 420, easing: 'ease-out' });
+
+      // si trop de tentatives en courte période, bloque un peu
+      if(attempts > 6){
+        status.textContent = 'Trop de tentatives. Attends 10s.';
+        submit.disabled = true;
+        setTimeout(()=>{ submit.disabled = false; attempts = 0; status.textContent=''; }, 10000);
+      }
+    }
+  }
+</script>
+</body>
+</html>
