@@ -1,140 +1,169 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Message Caché</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Accès sécurisé</title>
 <style>
-  body {
-    margin:0;
-    font-family: 'Arial', sans-serif;
-    background-color: #1a1a1a;
-    color: #fff;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    height:100vh;
-    flex-direction:column;
-    text-align:center;
-  }
-
-  h1 {
-    font-size: 2.5rem;
-    color: #00ffff;
-    text-shadow: 0 0 5px #00ffff, 0 0 10px #00ffff, 0 0 20px #00ffff;
-    margin-bottom:20px;
-  }
-
-  p {
-    font-size: 1.1rem;
-    margin-bottom: 20px;
-  }
-
-  input[type="password"] {
-    padding:10px 15px;
-    font-size:1rem;
-    border:2px solid #00ffff;
-    border-radius:5px;
-    background:transparent;
-    color:#fff;
-    outline:none;
-    transition:0.3s;
-  }
-
-  input[type="password"]:focus {
-    border-color:#ff9900;
-    box-shadow:0 0 10px #ff9900;
-  }
-
-  label {
-    margin-left:10px;
-    font-size:0.9rem;
-  }
-
-  button {
-    margin-top:20px;
-    padding:10px 25px;
-    font-size:1.1rem;
-    border:none;
-    border-radius:5px;
-    background:#ff9900;
-    color:#fff;
-    cursor:pointer;
-    transition:0.3s;
-    box-shadow: 0 0 5px #ff9900;
-  }
-
-  button:hover {
-    transform: translateY(-3px);
-    box-shadow: 0 0 15px #ff9900, 0 0 25px #ff9900;
-  }
-
-  .error {
-    margin-top:15px;
-    font-weight:bold;
-    color:#ff0000;
-    text-shadow: 0 0 5px #ff0000, 0 0 10px #ff0000;
-    animation: shake 0.3s;
-  }
-
-  @keyframes shake {
-    0%{ transform: translateX(0); }
-    25%{ transform: translateX(-5px);}
-    50%{ transform: translateX(5px);}
-    75%{ transform: translateX(-5px);}
-    100%{ transform: translateX(0);}
-  }
+:root{
+  --bg:#070708; --card:#0f1113; --accent:#ff7a18; --accent-2:#ffb56b;
+  --neon-orange: rgba(255,122,24,0.22); --text:#e9eef2; --muted:#96a0aa; --error:#ff3b3b;
+}
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0; font-family:Inter,system-ui,Arial,sans-serif;
+  background:linear-gradient(180deg,#050507,var(--bg));
+  color:var(--text); display:flex;align-items:center;justify-content:center;padding:24px;
+}
+.container{
+  width:100%;max-width:600px;
+  background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+  border-radius:14px;padding:28px;border:1px solid rgba(255,255,255,0.03);
+  box-shadow: 0 16px 60px rgba(2,6,23,0.6), inset 0 1px 0 rgba(255,255,255,0.02);
+}
+.title{
+  font-size:30px;font-weight:800;margin:0 0 6px;line-height:1;
+  background: linear-gradient(90deg, #fff 0%, var(--accent-2) 40%, var(--accent) 100%);
+  -webkit-background-clip: text;background-clip: text;color: transparent;
+  text-shadow: 0 8px 30px rgba(255,122,24,0.06);
+}
+.lead{margin:6px 0 18px;color:var(--muted);font-size:14px}
+.input-row{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+.input{flex:1;position:relative}
+.real-input{position:absolute;left:0;top:0;width:100%;height:100%;opacity:0;caret-color: transparent;}
+.display{
+  width:100%;padding:12px 14px;border-radius:10px;border:1px solid rgba(255,255,255,0.04);
+  background:rgba(255,255,255,0.02);color:var(--text);font-size:15px;min-height:46px;
+  display:flex;align-items:center;gap:4px;overflow:hidden;flex-wrap:wrap;
+  transition: box-shadow .12s, transform .12s;
+}
+.display.focus{box-shadow:0 14px 30px rgba(0,0,0,0.6), 0 0 28px var(--neon-orange); transform:translateY(-3px)}
+.dot{width:10px;height:10px;border-radius:50%;background:rgba(255,255,255,0.2);display:inline-block;margin:0 2px}
+.controls{display:flex;align-items:center;gap:12px;margin-top:8px;color:var(--muted);font-size:13px}
+.btn{
+  --h:48px;height:var(--h);padding:0 18px;border-radius:12px;border:0;cursor:pointer;
+  background:linear-gradient(180deg,var(--accent),var(--accent-2));
+  color:#051014;font-weight:800;letter-spacing:.4px;position:relative;overflow:hidden;
+  box-shadow: 0 14px 36px rgba(255,122,24,0.12), 0 6px 0 rgba(0,0,0,0.35);
+  transition: transform .14s cubic-bezier(.2,.9,.2,1), box-shadow .14s, filter .12s;
+}
+.btn::before{
+  content:'';position:absolute;inset:0;border-radius:12px;
+  box-shadow: 0 0 40px rgba(255,122,24,0.18), inset 0 0 10px rgba(255,200,140,0.03);
+  pointer-events:none;opacity:.95;
+}
+.btn:hover{transform: translateY(-6px) rotateX(4deg) scale(1.02);filter:brightness(1.04);box-shadow:0 22px 60px rgba(255,122,24,0.18)}
+.btn:active{transform: translateY(-2px) scale(.996)}
+.ripple{position:absolute;border-radius:50%;transform:translate(-50%,-50%) scale(.6);opacity:.4;pointer-events:none;animation:rippleAnim .6s ease-out forwards;background:rgba(255,255,255,0.12)}
+@keyframes rippleAnim{to{transform:translate(-50%,-50%) scale(4);opacity:0}}
+.status{min-height:28px;margin-top:10px;font-weight:700;color:var(--muted);font-size:14px}
+.status.ok{color:#7ff0c9;text-shadow:0 8px 30px rgba(0,200,160,0.05)}
+.status.error{
+  color:var(--error);text-shadow:0 0 12px rgba(255,59,59,0.6);
+  font-weight:900;font-size:15px;background: linear-gradient(90deg, rgba(255,59,59,0.02), transparent);
+  padding:8px;border-radius:8px;margin-top:12px;display:inline-block;
+}
+.shake{animation:shake .42s cubic-bezier(.36,.07,.19,.97)}
+@keyframes shake{0%{transform:translateX(0)}25%{transform:translateX(-8px)}50%{transform:translateX(6px)}75%{transform:translateX(-4px)}100%{transform:translateX(0)}}
+.hint{margin-top:12px;color:var(--muted);font-size:13px;background: rgba(255,255,255,0.01);padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.01)}
+@media (max-width:520px){ .input-row{flex-direction:column} .btn{width:100%} }
 </style>
 </head>
 <body>
-
-<h1>Accès sécurisé</h1>
-<p>Entre le mot de passe pour déverrouiller la page.</p>
-
-<input type="password" id="password" placeholder="Mot de passe">
-<label><input type="checkbox" id="showPassword"> Afficher le mot de passe</label>
-<br>
-<button id="submitBtn">Valider</button>
-<div id="message"></div>
-
+<div class="container" role="main" aria-labelledby="title">
+  <h1 id="title" class="title">Accès sécurisé</h1>
+  <p class="lead">Entre le mot de passe pour déverrouiller la page</p>
+  <div class="input-row">
+    <div class="input" style="flex:1">
+      <input id="real" class="real-input" type="password" autocomplete="one-time-code" aria-label="mot de passe">
+      <div id="display" class="display" tabindex="0" role="textbox" aria-label="affichage du mot de passe"></div>
+    </div>
+    <button id="submit" class="btn" aria-label="Valider">Valider</button>
+  </div>
+  <div class="controls">
+    <label style="display:flex;align-items:center;gap:8px"><input id="show" type="checkbox">Afficher le mot de passe</label>
+    <div style="flex:1"></div>
+  </div>
+  <div id="status" class="status" aria-live="polite"></div>
+  <div class="hint">
+    <strong>Indice :</strong> C'est mon prénom avec une majuscule, il y a ensuite / puis ma date de naissance, puis le prénom avec une majuscule d'une personne que j'aime, puis encore un /, le prénom de mon chat avec une majuscule, la 24e lettre de l'alphabet et un !<br>
+    <em>exemple : Gilbert/1983/Gabriel/ProutG!</em>
+  </div>
+</div>
 <script>
-const passwordInput = document.getElementById('password');
-const showPassword = document.getElementById('showPassword');
-const submitBtn = document.getElementById('submitBtn');
-const messageDiv = document.getElementById('message');
+const API = 'https://message-cache-backend.onrender.com';
+const real = document.getElementById('real');
+const display = document.getElementById('display');
+const show = document.getElementById('show');
+const submit = document.getElementById('submit');
+const status = document.getElementById('status');
 
-showPassword.addEventListener('change', () => {
-  passwordInput.type = showPassword.checked ? 'text' : 'password';
-});
+display.addEventListener('click', ()=> real.focus());
+display.addEventListener('focus', ()=> real.focus());
+real.addEventListener('focus', ()=> display.classList.add('focus'));
+real.addEventListener('blur', ()=> display.classList.remove('focus'));
+show.addEventListener('change', ()=> renderDisplay());
 
-submitBtn.addEventListener('click', async () => {
-  const code = passwordInput.value.trim();
-  messageDiv.textContent = '';
-  if(!code) return;
-
-  try {
-    const res = await fetch('https://message-cache-backend.onrender.com/auth', {
-      method: 'POST',
-      headers: {'Content-Type':'application/json'},
-      body: JSON.stringify({ code })
-    });
-    const data = await res.json();
-
-    if(data.ok){
-      messageDiv.style.color = '#00ff00';
-      messageDiv.textContent = 'Mot de passe correct ! Le lien Discord a été envoyé.';
-      messageDiv.style.textShadow = '0 0 5px #00ff00, 0 0 15px #00ff00';
-      console.log('Token:', data.token);
+function renderDisplay(){
+  const s = real.value||'';
+  display.innerHTML='';
+  if(!s) return;
+  const masked = !show.checked;
+  for(let i=0;i<s.length;i++){
+    if(masked){
+      const dot = document.createElement('span');
+      dot.className='dot'; display.appendChild(dot);
     } else {
-      throw new Error(data.error || 'Erreur');
+      const ch = document.createElement('span'); ch.textContent=s[i]; display.appendChild(ch);
     }
-  } catch(e){
-    messageDiv.classList.add('error');
-    messageDiv.textContent = e.message;
-    setTimeout(()=> messageDiv.classList.remove('error'), 500);
   }
-});
-</script>
+  const caret = document.createElement('span'); caret.textContent=' '; caret.style.width='2px'; display.appendChild(caret);
+}
 
+function rippleAt(e,el){
+  const r=document.createElement('span'); r.className='ripple';
+  const rect=el.getBoundingClientRect();
+  const x=(e.clientX||rect.left+rect.width/2)-rect.left;
+  const y=(e.clientY||rect.top+rect.height/2)-rect.top;
+  r.style.left=x+'px'; r.style.top=y+'px';
+  el.appendChild(r); setTimeout(()=> r.remove(),700);
+}
+
+submit.addEventListener('click', async e=>{rippleAt(e,submit); await sendPassword();});
+real.addEventListener('keydown', async e=>{if(e.key==='Enter'){await sendPassword();}});
+
+let busy=false;
+async function sendPassword(){
+  if(busy) return; busy=true;
+  status.className='status'; status.textContent='Vérification...';
+  const code = real.value;
+  if(!code){
+    status.textContent='Entre un mot de passe.'; status.className='status error shake';
+    setTimeout(()=>status.classList.remove('shake'),420); busy=false; return;
+  }
+  try{
+    const r = await fetch(API+'/auth',{
+      method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({code})
+    });
+    const j = await r.json();
+    if(r.ok && j.ok){
+      status.textContent='Accès autorisé. Copie le token ci‑dessous.'; status.className='status ok';
+      if(j.token){
+        const t=document.createElement('div'); t.style.marginTop='10px';
+        t.style.padding='10px'; t.style.background='rgba(255,255,255,0.02)';
+        t.style.borderRadius='8px'; t.style.wordBreak='break-all';
+        t.textContent=j.token; status.appendChild(t);
+      }
+    } else {
+      status.textContent=j.error||'mot de passe incorrect, essaie encore 😉';
+      status.className='status error shake'; setTimeout(()=>status.classList.remove('shake'),420);
+    }
+  } catch(err){
+    status.textContent='Erreur réseau. Le serveur est peut-être endormi.';
+    status.className='status error shake'; setTimeout(()=>status.classList.remove('shake'),420);
+  } finally{busy=false;}
+}
+</script>
 </body>
 </html>
