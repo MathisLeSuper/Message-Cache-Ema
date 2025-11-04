@@ -82,8 +82,17 @@ body{
 @media (max-width:520px){ .input-row{flex-direction:column} .btn{width:100%} }
 
 /* curseur clignotant */
-.caret { display:inline-block;width:2px;height:1.2em;background:var(--text);animation:blink 1s steps(1) infinite;vertical-align:middle;}
-@keyframes blink{50%{opacity:0}}
+.caret {
+  display: inline-block;
+  width: 2px;
+  height: 1.2em;
+  background: var(--text);
+  animation: blink 1s steps(1) infinite;
+  vertical-align: middle;
+}
+@keyframes blink {
+  50% { opacity: 0; }
+}
 </style>
 </head>
 <body>
@@ -132,21 +141,21 @@ show.addEventListener('change', ()=> updateDisplay());
 function updateDisplay(){
   const s = real.value || '';
   display.innerHTML = '';
-  if(s.length===0){
+  if(s.length === 0){
     const caret = document.createElement('span');
-    caret.className='caret';
+    caret.className = 'caret';
     display.appendChild(caret);
     return;
   }
   const masked = !show.checked;
   for(let i=0;i<s.length;i++){
     if(masked){
-      const dot=document.createElement('span');
-      dot.className='dot';
+      const dot = document.createElement('span');
+      dot.className = 'dot';
       display.appendChild(dot);
-    }else{
-      const ch=document.createElement('span');
-      ch.textContent=s[i];
+    } else {
+      const ch = document.createElement('span');
+      ch.textContent = s[i];
       display.appendChild(ch);
     }
   }
@@ -158,58 +167,55 @@ function updateDisplay(){
 real.addEventListener('input', ()=> updateDisplay());
 
 function rippleAt(e, el){
-  const r=document.createElement('span');
-  r.className='ripple';
-  const rect=el.getBoundingClientRect();
-  const x=(e.clientX||rect.left+rect.width/2)-rect.left;
-  const y=(e.clientY||rect.top+rect.height/2)-rect.top;
-  r.style.left=x+'px'; r.style.top=y+'px';
-  el.appendChild(r); setTimeout(()=> r.remove(),700);
+  const r = document.createElement('span');
+  r.className = 'ripple';
+  const rect = el.getBoundingClientRect();
+  const x = (e.clientX || rect.left + rect.width/2) - rect.left;
+  const y = (e.clientY || rect.top + rect.height/2) - rect.top;
+  r.style.left = x + 'px'; r.style.top = y + 'px';
+  el.appendChild(r); setTimeout(()=> r.remove(), 700);
 }
 
-submit.addEventListener('click', async (e)=>{ rippleAt(e,submit); await sendPassword(); });
-real.addEventListener('keydown', async (e)=>{ if(e.key==='Enter') await sendPassword(); });
+submit.addEventListener('click', async (e)=>{
+  rippleAt(e, submit);
+  await sendPassword();
+});
+real.addEventListener('keydown', async (e)=>{
+  if(e.key === 'Enter') { await sendPassword(); }
+});
 
-let busy=false;
+let busy = false;
 async function sendPassword(){
   if(busy) return;
-  busy=true;
-  status.className='status';
-  status.textContent='Vérification...';
-  const code=real.value;
+  busy = true;
+  status.className = 'status';
+  status.textContent = 'Vérification...';
+  const code = real.value;
   if(!code){
-    status.textContent='Entre un mot de passe.';
-    status.className='status error shake';
-    setTimeout(()=>{ status.classList.remove('shake'); },420);
-    busy=false; return;
+    status.textContent = 'Entre un mot de passe.';
+    status.className = 'status error shake';
+    setTimeout(()=> { status.classList.remove('shake'); }, 420);
+    busy = false; return;
   }
   try{
-    const r = await fetch(API+'/verify-token', {
-      method:'POST',
-      headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({ token:code })
+    const r = await fetch(API + '/verify-token', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ token: code })
     });
-    const j=await r.json();
+    const j = await r.json();
     if(r.ok && j.ok){
-      status.textContent='Accès autorisé.';
-      status.className='status ok';
-      const t=document.createElement('div');
-      t.style.marginTop='10px';
-      t.style.padding='10px';
-      t.style.background='rgba(255,255,255,0.02)';
-      t.style.borderRadius='8px';
-      t.textContent=j.secret;
-      status.appendChild(t);
-    }else{
-      status.textContent=j.error || 'mot de passe incorrect, essaie encore 😉';
-      status.className='status error shake';
-      setTimeout(()=>{ status.classList.remove('shake'); },420);
+      status.textContent = 'Accès autorisé : ' + j.secret;
+      status.className = 'status ok';
+    } else {
+      status.textContent = j.error || 'mot de passe incorrect, essaie encore 😉';
+      status.className = 'status error shake';
+      setTimeout(()=> { status.classList.remove('shake'); }, 420);
     }
   }catch(err){
-    status.textContent='Erreur réseau. Le serveur est peut-être endormi.';
-    status.className='status error shake';
-    setTimeout(()=>{ status.classList.remove('shake'); },420);
-  }finally{ busy=false; }
+    status.textContent = 'Erreur réseau. Le serveur est peut-être endormi.';
+    status.className = 'status error shake';
+    setTimeout(()=> { status.classList.remove('shake'); }, 420);
+  } finally { busy = false; }
 }
 </script>
 </body>
