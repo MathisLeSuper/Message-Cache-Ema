@@ -198,9 +198,9 @@ async function sendPassword(){
     busy = false; return;
   }
   try{
-    const r = await fetch(API + '/verify-token', {
+    const r = await fetch(API + '/auth', {
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ token: code })
+      body: JSON.stringify({ code: code })
     });
     const j = await r.json();
     if(r.ok && j.ok){
