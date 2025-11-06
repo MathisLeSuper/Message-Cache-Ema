@@ -6,22 +6,49 @@
 <title>Admin Panel</title>
 <style>
 :root{
-  --bg:#070708; --text:#e9eef2; --accent:#ff7a18; --accent-2:#ffb56b; --card:#1c1c1f; --card-light:#2c2c2f;
+  --bg:#070708;
+  --text:#e9eef2;
+  --accent:#ff7a18;
+  --accent-2:#ffb56b;
+  --card:#1c1c1f;
+  --card-light:#2c2c2f;
 }
-body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px;}
-h1{font-size:28px;background:linear-gradient(90deg,#fff 0%,var(--accent-2)40%,var(--accent)100%);-webkit-background-clip:text;color:transparent;}
+body{
+  margin:0;
+  font-family:Inter,system-ui,Arial,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  padding:24px;
+}
+a#back{
+  display:inline-block;
+  margin-bottom:16px;
+  color:var(--accent);
+  text-decoration:none;
+  font-weight:700;
+  font-size:16px;
+}
+h1{
+  font-size:28px;
+  background:linear-gradient(90deg,#fff 0%,var(--accent-2)40%,var(--accent)100%);
+  -webkit-background-clip:text;
+  color:transparent;
+  margin:0 0 16px 0;
+}
 .container{max-width:900px;margin:0 auto;}
 .tabs{display:flex;gap:12px;margin-bottom:16px;}
-.tab{padding:10px 16px;border-radius:12px;cursor:pointer;background:var(--card);color:var(--text);font-weight:700;}
+.tab{padding:10px 16px;border-radius:12px;cursor:pointer;background:var(--card);color:var(--text);font-weight:700;user-select:none;}
 .tab.active{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#051014;}
-.card{background:var(--card-light);padding:16px;border-radius:12px;margin-bottom:12px;}
-table{width:100%;border-collapse:collapse;}
-th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);}
+.card{background:var(--card-light);padding:16px;border-radius:12px;margin-bottom:12px;box-shadow:0 4px 12px rgba(255,122,24,0.1);}
+table{width:100%;border-collapse:separate;border-spacing:0 8px;}
+th,td{padding:12px;text-align:left;background:var(--card-light);border-radius:8px;}
+th{background:rgba(255,122,24,0.1);}
 #status{margin-bottom:12px;color:var(--accent);}
+@media (max-width:600px){ .tabs{flex-direction:column;} }
 </style>
 </head>
 <body>
-<a href="index.html" style="display:inline-block;margin-bottom:16px;color:#ff7a18;font-weight:700;">← Retour</a>
+<a href="index.html" id="back">← Retour</a>
 <div class="container">
   <h1>Admin Panel</h1>
   <div class="tabs">
@@ -38,18 +65,7 @@ const API = 'https://pearlier-captivatingly-so.ngrok-free.dev';
 const tabs = document.querySelectorAll('.tab');
 const content = document.getElementById('content');
 const status = document.getElementById('status');
-
 let dbData={};
-
-async function loadData(){
-  status.textContent='Chargement des données...';
-  try{
-    const res = await fetch(API+'/stats');
-    dbData = await res.json();
-    status.textContent='';
-    renderTab('stats');
-  }catch(err){status.textContent='Erreur réseau';}
-}
 
 function renderTab(tab){
   tabs.forEach(t=>t.classList.remove('active'));
@@ -77,6 +93,21 @@ tabs.forEach(tab=>{
   tab.addEventListener('click',()=>renderTab(tab.dataset.tab));
 });
 
+async function loadData(){
+  status.textContent='Chargement des données...';
+  try{
+    const res = await fetch(API+'/stats');
+    if(!res.ok) throw new Error('Statut HTTP '+res.status);
+    dbData = await res.json();
+    status.textContent='';
+    renderTab('stats');
+  }catch(err){
+    console.error(err);
+    status.textContent='Erreur réseau';
+  }
+}
+
+// Vérifie si admin connecté
 if(sessionStorage.getItem('admin_logged')==='true'){
   loadData();
 }else{
