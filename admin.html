@@ -3,163 +3,89 @@
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Admin — Message Cache</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+<title>Admin Panel</title>
 <style>
-:root{
-  --bg:#070708; --card:#0f1113; --accent:#ff7a18; --muted:#96a0aa; --text:#e9eef2;
-}
-*{box-sizing:border-box}
-body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:linear-gradient(180deg,#050507,var(--bg));color:var(--text);min-height:100vh}
-.header{display:flex;align-items:center;gap:12px;padding:18px 24px;border-bottom:1px solid rgba(255,255,255,0.02)}
-.logo{font-weight:800;font-size:18px;background:linear-gradient(90deg,#fff, var(--accent-2),var(--accent));-webkit-background-clip:text;color:transparent}
-.controls{margin-left:auto;display:flex;gap:8px;align-items:center}
-.btn{background:linear-gradient(180deg,var(--accent),#ffb56b);border:0;padding:8px 12px;border-radius:10px;color:#051014;font-weight:800;cursor:pointer}
-.container{padding:20px;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-.card{background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));padding:16px;border-radius:12px;box-shadow:0 10px 30px rgba(2,6,23,0.6);border:1px solid rgba(255,255,255,0.03)}
-.card h3{margin:0 0 8px}
-.list{max-height:48vh;overflow:auto;padding-right:8px}
-.stat{font-size:28px;font-weight:800}
-.small{color:var(--muted);font-size:13px}
-.grid-full{grid-column:1/-1}
-.table{width:100%;border-collapse:collapse}
-.table th,.table td{padding:8px;border-bottom:1px solid rgba(255,255,255,0.02);text-align:left}
-.kv{display:flex;gap:6px;align-items:center}
-.refresh{background:transparent;border:1px solid rgba(255,255,255,0.04);padding:8px;border-radius:8px;color:var(--text);cursor:pointer}
-@media (max-width:980px){ .container{grid-template-columns:1fr 1fr} }
-@media (max-width:640px){ .container{grid-template-columns:1fr} .list{max-height:36vh} }
+body{background:#070708;color:#e9eef2;font-family:Inter,system-ui,Arial,sans-serif;padding:24px;}
+.container{max-width:900px;margin:auto;}
+h1,h2{color:#ff7a18}
+.tab{display:flex;gap:12px;margin-bottom:12px}
+.tab button{padding:10px 20px;border:none;border-radius:8px;background:#222;color:#fff;cursor:pointer}
+.tab button.active{background:#ff7a18;color:#051014;font-weight:800}
+.section{display:none;margin-top:12px}
+.section.active{display:block}
+table{width:100%;border-collapse:collapse;color:#fff;margin-top:12px}
+th,td{padding:8px;border:1px solid rgba(255,255,255,0.1);text-align:left}
 </style>
 </head>
 <body>
-  <div class="header">
-    <div class="logo">Admin • Message‑Cache</div>
-    <div class="small">Panneau sécurisé</div>
-    <div class="controls">
-      <button id="refresh" class="refresh">🔄 Actualiser</button>
-      <button id="logout" class="btn">Déconnexion</button>
-    </div>
-  </div>
+<div class="container">
+<h1>Admin Panel</h1>
+<div>
+<input id="admin-code" type="password" placeholder="Code admin" />
+<button id="login">Connexion</button>
+<div id="status"></div>
+</div>
 
-  <div class="container">
-    <div class="card">
-      <h3>Visiteurs uniques</h3>
-      <div class="stat" id="visitorsCount">—</div>
-      <div class="small">Nombre de personnes uniques ayant essayé la page</div>
-    </div>
+<div class="tab">
+<button data-section="stats">Statistiques</button>
+<button data-section="messages">Messages</button>
+<button data-section="codes">Tentatives de codes</button>
+</div>
 
-    <div class="card">
-      <h3>Accès au message</h3>
-      <div class="stat" id="secretCount">—</div>
-      <div class="small">Nombre de personnes ayant vu le message secret</div>
-    </div>
-
-    <div class="card">
-      <h3>Tentatives de codes</h3>
-      <div class="small">Affiche les dernières tentatives</div>
-      <div class="list" id="attemptsList">Chargement…</div>
-    </div>
-
-    <div class="card grid-full">
-      <h3>Messages anonymes reçus</h3>
-      <div class="list" id="messagesList">Chargement…</div>
-    </div>
-
-    <div class="card">
-      <h3>Pages visitées (par utilisateur)</h3>
-      <div class="list" id="pagesList">Chargement…</div>
-    </div>
-
-    <div class="card">
-      <h3>Durée moyenne (s)</h3>
-      <div class="stat" id="avgDuration">—</div>
-      <div class="small">Temps moyen passé sur le site</div>
-    </div>
-  </div>
+<div id="stats" class="section">
+<h2>Statistiques</h2>
+<div id="stats-content">Chargement...</div>
+</div>
+<div id="messages" class="section">
+<h2>Messages anonymes</h2>
+<div id="messages-content">Chargement...</div>
+</div>
+<div id="codes" class="section">
+<h2>Tentatives de codes</h2>
+<div id="codes-content">Chargement...</div>
+</div>
+</div>
 
 <script>
-const API = 'http://localhost:3000'; // CHANGE si besoin
-const adminToken = sessionStorage.getItem('admin_token');
+const API = 'https://pearlier-captivatingly-so.ngrok-free.dev';
 
-// si pas de token admin -> renvoyer vers index
-if(!adminToken){
-  alert('Accès admin requis. Retour à la page principale.');
-  window.location.href = 'index.html';
-}
-
-// helper pour fetch admin endpoints (POST avec token)
-async function adminFetch(path){
-  const res = await fetch(API + path, {
-    method:'POST',
-    headers:{'Content-Type':'application/json'},
-    body: JSON.stringify({ token: adminToken })
+const sections = document.querySelectorAll('.section');
+document.querySelectorAll('.tab button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    sections.forEach(s=>s.classList.remove('active'));
+    document.getElementById(btn.dataset.section).classList.add('active');
+    document.querySelectorAll('.tab button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
   });
-  if(res.status === 401){
-    alert('Token admin invalide. Déconnexion.');
-    sessionStorage.removeItem('admin_token');
-    window.location.href='index.html';
-    throw new Error('unauthorized');
-  }
-  return res.json();
-}
-
-async function loadStats(){
-  try{
-    const stats = await adminFetch('/admin/stats'); // attend { visitorsCount, secretCount, attempts:[], pagesByUser:{}, avgDuration }
-    document.getElementById('visitorsCount').innerText = stats.visitorsCount ?? '0';
-    document.getElementById('secretCount').innerText = stats.secretCount ?? '0';
-    document.getElementById('avgDuration').innerText = Math.round((stats.avgDuration ?? 0)) ;
-
-    // attempts
-    const attemptsEl = document.getElementById('attemptsList');
-    attemptsEl.innerHTML = '';
-    (stats.attempts || []).slice().reverse().forEach(a=>{
-      const d = document.createElement('div');
-      d.className='kv';
-      d.style.marginBottom='8px';
-      d.innerHTML = `<div style="font-weight:700">${a.code}</div><div class="small" style="margin-left:8px">${new Date(a.ts).toLocaleString()}</div>`;
-      attemptsEl.appendChild(d);
-    });
-
-    // messages
-    const messagesEl = document.getElementById('messagesList');
-    messagesEl.innerHTML = '';
-    (stats.messages || []).slice().reverse().forEach(m=>{
-      const el = document.createElement('div');
-      el.style.padding='8px'; el.style.borderBottom='1px solid rgba(255,255,255,0.02)';
-      el.innerHTML = `<div style="font-weight:700">${escapeHtml(m.name || 'Anonyme')}</div>
-        <div class="small">${escapeHtml(m.email || '')}</div>
-        <div style="margin-top:8px;white-space:pre-wrap">${escapeHtml(m.message)}</div>
-        <div class="small" style="margin-top:8px">${new Date(m.ts).toLocaleString()}</div>`;
-      messagesEl.appendChild(el);
-    });
-
-    // pages per user
-    const pagesEl = document.getElementById('pagesList');
-    pagesEl.innerHTML = '';
-    const byUser = stats.pagesByUser || {};
-    for(const token in byUser){
-      const pages = byUser[token];
-      const div = document.createElement('div');
-      div.style.padding='8px'; div.style.borderBottom='1px solid rgba(255,255,255,0.02)';
-      div.innerHTML = `<div style="font-weight:700">${token.slice(0,8)}</div><div class="small">Pages: ${pages.join(', ')}</div>`;
-      pagesEl.appendChild(div);
-    }
-  }catch(err){
-    console.error(err);
-    alert('Erreur lors du chargement des stats.');
-  }
-}
-
-document.getElementById('refresh').addEventListener('click', loadStats);
-document.getElementById('logout').addEventListener('click', ()=>{
-  sessionStorage.removeItem('admin_token');
-  window.location.href='index.html';
 });
 
-// helper escape
-function escapeHtml(s){ return (s||'').toString().replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;'); }
+document.getElementById('login').addEventListener('click', async ()=>{
+  const code = document.getElementById('admin-code').value;
+  try{
+    const res = await fetch(API+'/admin-auth',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ code })
+    });
+    const j = await res.json();
+    if(j.ok){
+      document.getElementById('status').textContent='Connecté !';
+      loadData();
+    } else document.getElementById('status').textContent=j.error || 'Code incorrect';
+  }catch(err){ document.getElementById('status').textContent='Erreur réseau'; }
+});
 
-loadStats();
+async function loadData(){
+  try{
+    const res = await fetch(API+'/stats'); const stats = await res.json();
+    const msgs = await fetch(API+'/messages'); const messages = await msgs.json();
+    const codes = await fetch(API+'/codes'); const codesData = await codes.json();
+
+    document.getElementById('stats-content').innerHTML=JSON.stringify(stats,null,2);
+    document.getElementById('messages-content').innerHTML=messages.map(m=>`[${m.date}] ${m.name} <${m.email}> : ${m.message}`).join('<br>');
+    document.getElementById('codes-content').innerHTML=codesData.map(c=>`[${c.date}] ${c.code} - ${c.ip||'ip inconnu'}`).join('<br>');
+  }catch(err){ console.log(err); }
+}
 </script>
 </body>
 </html>
