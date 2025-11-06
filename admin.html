@@ -18,19 +18,28 @@ h1{font-size:28px;background:linear-gradient(90deg,#fff 0%,var(--accent-2)40%,va
 table{width:100%;border-collapse:collapse;}
 th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);}
 #status{margin-bottom:12px;color:var(--accent);}
+#refresh{padding:8px 12px;border:none;border-radius:8px;background:var(--accent);color:#051014;font-weight:700;cursor:pointer;margin-bottom:12px;}
 </style>
 </head>
 <body>
 <a href="index.html" style="display:inline-block;margin-bottom:16px;color:#ff7a18;font-weight:700;">← Retour</a>
 <div class="container">
   <h1>Admin Panel</h1>
-  <div class="tabs">
-    <div class="tab active" data-tab="stats">Stats</div>
-    <div class="tab" data-tab="messages">Messages</div>
-    <div class="tab" data-tab="attempts">Tentatives</div>
+  <div id="login">
+    <input id="adminCode" placeholder="Code admin">
+    <button id="connect">Connexion</button>
   </div>
-  <div id="status">Chargement...</div>
-  <div id="content"></div>
+
+  <div id="panel" style="display:none;">
+    <button id="refresh">Actualiser</button>
+    <div class="tabs">
+      <div class="tab active" data-tab="stats">Stats</div>
+      <div class="tab" data-tab="messages">Messages</div>
+      <div class="tab" data-tab="attempts">Tentatives</div>
+    </div>
+    <div id="status"></div>
+    <div id="content"></div>
+  </div>
 </div>
 
 <script>
@@ -38,63 +47,62 @@ const API = 'https://pearlier-captivatingly-so.ngrok-free.dev';
 const tabs = document.querySelectorAll('.tab');
 const content = document.getElementById('content');
 const status = document.getElementById('status');
+const refreshBtn = document.getElementById('refresh');
 
-let dbData={ messages: [], attempts: [] };
+let dbData = { messages: [], attempts: [] };
+let adminCode = '';
 
-async function loadData(){
-  status.textContent='Chargement des données...';
-  try{
-    const res = await fetch(API+'/stats');
-    if(!res.ok) throw new Error('Erreur réseau');
+async function loadData() {
+  if (!adminCode) return;
+  status.textContent = 'Chargement...';
+  try {
+    const res = await fetch(`${API}/admin/data?code=${encodeURIComponent(adminCode)}`);
     const data = await res.json();
-    dbData.messages = data.messages || [];
-    dbData.attempts = data.attempts || [];
-    status.textContent='';
+    if (!data.ok && data.error) throw new Error(data.error);
+    dbData = data;
     renderTab('stats');
-  }catch(err){
-    console.error(err);
-    status.textContent='Impossible de récupérer les données';
-    content.innerHTML='';
+    status.textContent = 'Données mises à jour.';
+  } catch (err) {
+    status.textContent = 'Erreur: ' + err.message;
   }
 }
 
-function renderTab(tab){
-  tabs.forEach(t=>t.classList.remove('active'));
+function renderTab(tab) {
+  tabs.forEach(t => t.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-  let html='';
+  let html = '';
 
-  if(tab==='stats'){
-    html=`<div class="card">Nombre de messages: ${dbData.messages.length}<br>Nombre de tentatives: ${dbData.attempts.length}</div>`;
-  } else if(tab==='messages'){
-    html='<table><tr><th>Date</th><th>Nom</th><th>Email</th><th>Message</th></tr>';
-    (dbData.messages||[]).forEach(m=>{
-      if(m.name||m.email||m.message) // ignore empty messages
-        html+=`<tr><td>${new Date(m.date).toLocaleString()}</td><td>${m.name}</td><td>${m.email}</td><td>${m.message}</td></tr>`;
+  if (tab === 'stats') {
+    html = `<div class="card">Messages: ${dbData.messages.length}<br>Tentatives: ${dbData.attempts.length}</div>`;
+  } else if (tab === 'messages') {
+    html = '<table><tr><th>Date</th><th>Nom</th><th>Email</th><th>Message</th></tr>';
+    dbData.messages.forEach(m => {
+      if (m.message)
+        html += `<tr><td>${new Date(m.date).toLocaleString()}</td><td>${m.name}</td><td>${m.email}</td><td>${m.message}</td></tr>`;
     });
-    html+='</table>';
-  } else if(tab==='attempts'){
-    html='<table><tr><th>Date</th><th>Code tenté</th></tr>';
-    (dbData.attempts||[]).forEach(a=>{
-      html+=`<tr><td>${new Date(a.date).toLocaleString()}</td><td>${a.code}</td></tr>`;
+    html += '</table>';
+  } else if (tab === 'attempts') {
+    html = '<table><tr><th>Date</th><th>Code tenté</th></tr>';
+    dbData.attempts.forEach(a => {
+      html += `<tr><td>${new Date(a.date).toLocaleString()}</td><td>${a.code}</td></tr>`;
     });
-    html+='</table>';
+    html += '</table>';
   }
 
-  content.innerHTML=html;
+  content.innerHTML = html;
 }
 
-tabs.forEach(tab=>{
-  tab.addEventListener('click',()=>renderTab(tab.dataset.tab));
-});
+tabs.forEach(tab => tab.addEventListener('click', () => renderTab(tab.dataset.tab)));
+refreshBtn.addEventListener('click', loadData);
 
-// Vérifie si admin est connecté
-if(sessionStorage.getItem('admin_logged')==='true'){
+document.getElementById('connect').addEventListener('click', () => {
+  const codeInput = document.getElementById('adminCode').value.trim();
+  if (codeInput === '') return alert('Entre le code admin');
+  adminCode = codeInput;
+  document.getElementById('login').style.display = 'none';
+  document.getElementById('panel').style.display = 'block';
   loadData();
-}else{
-  // si on arrive ici sans login, retourne à l'accueil
-  status.textContent='Accès interdit';
-  content.innerHTML='<p>Vous devez vous connecter pour voir cette page.</p>';
-}
+});
 </script>
 </body>
 </html>
