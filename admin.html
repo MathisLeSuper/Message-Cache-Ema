@@ -1,108 +1,63 @@
-<!doctype html>
-<html lang="fr">
-<head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Admin Panel</title>
-<style>
-:root{
-  --bg:#070708; --text:#e9eef2; --accent:#ff7a18; --accent-2:#ffb56b; --card:#1c1c1f; --card-light:#2c2c2f;
-}
-body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px;}
-h1{font-size:28px;background:linear-gradient(90deg,#fff 0%,var(--accent-2)40%,var(--accent)100%);-webkit-background-clip:text;color:transparent;}
-.container{max-width:900px;margin:0 auto;}
-.tabs{display:flex;gap:12px;margin-bottom:16px;}
-.tab{padding:10px 16px;border-radius:12px;cursor:pointer;background:var(--card);color:var(--text);font-weight:700;}
-.tab.active{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#051014;}
-.card{background:var(--card-light);padding:16px;border-radius:12px;margin-bottom:12px;}
-table{width:100%;border-collapse:collapse;}
-th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);}
-#status{margin-bottom:12px;color:var(--accent);}
-#refresh{padding:8px 12px;border:none;border-radius:8px;background:var(--accent);color:#051014;font-weight:700;cursor:pointer;margin-bottom:12px;}
-</style>
-</head>
-<body>
-<a href="index.html" style="display:inline-block;margin-bottom:16px;color:#ff7a18;font-weight:700;">← Retour</a>
-<div class="container">
-  <h1>Admin Panel</h1>
-  <div id="login">
-    <input id="adminCode" placeholder="Code admin">
-    <button id="connect">Connexion</button>
-  </div>
-
-  <div id="panel" style="display:none;">
-    <button id="refresh">Actualiser</button>
-    <div class="tabs">
-      <div class="tab active" data-tab="stats">Stats</div>
-      <div class="tab" data-tab="messages">Messages</div>
-      <div class="tab" data-tab="attempts">Tentatives</div>
-    </div>
-    <div id="status"></div>
-    <div id="content"></div>
-  </div>
-</div>
-
 <script>
 const API = 'https://pearlier-captivatingly-so.ngrok-free.dev';
 const tabs = document.querySelectorAll('.tab');
 const content = document.getElementById('content');
 const status = document.getElementById('status');
-const refreshBtn = document.getElementById('refresh');
+const refreshBtn = document.createElement('button');
+refreshBtn.textContent = 'Actualiser';
+refreshBtn.style.cssText = 'padding:8px 12px;margin-bottom:12px;';
+document.querySelector('.container').insertBefore(refreshBtn, content);
 
 let dbData = { messages: [], attempts: [] };
-let adminCode = '';
 
-async function loadData() {
-  if (!adminCode) return;
+async function loadData(){
   status.textContent = 'Chargement...';
   try {
-    const res = await fetch(`${API}/admin/data?code=${encodeURIComponent(adminCode)}`);
+    const res = await fetch(API+'/stats');
+    if(!res.ok) throw new Error('Erreur réseau');
     const data = await res.json();
-    if (!data.ok && data.error) throw new Error(data.error);
-    dbData = data;
+    dbData.messages = data.messages || [];
+    dbData.attempts = data.attempts || [];
+    status.textContent = '';
     renderTab('stats');
-    status.textContent = 'Données mises à jour.';
-  } catch (err) {
-    status.textContent = 'Erreur: ' + err.message;
+  } catch(err){
+    console.error(err);
+    status.textContent = 'Impossible de récupérer les données';
+    content.innerHTML = '';
   }
 }
 
-function renderTab(tab) {
+function renderTab(tab){
   tabs.forEach(t => t.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
   let html = '';
 
-  if (tab === 'stats') {
-    html = `<div class="card">Messages: ${dbData.messages.length}<br>Tentatives: ${dbData.attempts.length}</div>`;
-  } else if (tab === 'messages') {
-    html = '<table><tr><th>Date</th><th>Nom</th><th>Email</th><th>Message</th></tr>';
+  if(tab==='stats'){
+    html=`<div class="card">Messages: ${dbData.messages.length}<br>Tentatives: ${dbData.attempts.length}</div>`;
+  } else if(tab==='messages'){
+    html='<table><tr><th>Date</th><th>Nom</th><th>Email</th><th>Message</th></tr>';
     dbData.messages.forEach(m => {
-      if (m.message)
-        html += `<tr><td>${new Date(m.date).toLocaleString()}</td><td>${m.name}</td><td>${m.email}</td><td>${m.message}</td></tr>`;
+      if(m.name||m.email||m.message)
+        html+=`<tr><td>${new Date(m.date).toLocaleString()}</td><td>${m.name}</td><td>${m.email}</td><td>${m.message}</td></tr>`;
     });
-    html += '</table>';
-  } else if (tab === 'attempts') {
-    html = '<table><tr><th>Date</th><th>Code tenté</th></tr>';
-    dbData.attempts.forEach(a => {
-      html += `<tr><td>${new Date(a.date).toLocaleString()}</td><td>${a.code}</td></tr>`;
+    html+='</table>';
+  } else if(tab==='attempts'){
+    html='<table><tr><th>Date</th><th>Code tenté</th></tr>';
+    dbData.attempts.forEach(a=>{
+      html+=`<tr><td>${new Date(a.date).toLocaleString()}</td><td>${a.code}</td></tr>`;
     });
-    html += '</table>';
+    html+='</table>';
   }
-
   content.innerHTML = html;
 }
 
-tabs.forEach(tab => tab.addEventListener('click', () => renderTab(tab.dataset.tab)));
+tabs.forEach(tab=>tab.addEventListener('click', ()=>renderTab(tab.dataset.tab)));
 refreshBtn.addEventListener('click', loadData);
 
-document.getElementById('connect').addEventListener('click', () => {
-  const codeInput = document.getElementById('adminCode').value.trim();
-  if (codeInput === '') return alert('Entre le code admin');
-  adminCode = codeInput;
-  document.getElementById('login').style.display = 'none';
-  document.getElementById('panel').style.display = 'block';
+// Vérifie si admin connecté via index.html
+if(sessionStorage.getItem('admin_logged')==='true'){
   loadData();
-});
+} else {
+  window.location.href='index.html'; // pas d'accès direct via URL
+}
 </script>
-</body>
-</html>
