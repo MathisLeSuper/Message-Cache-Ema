@@ -70,7 +70,11 @@ body{
   </div>
 
 <script>
-const API = 'http://localhost:3000'; // ton backend
+/* === CONFIG ===
+   Remplace API si ton backend n'est pas sur http://localhost:3000
+*/
+const API = 'http://localhost:3000';
+const ADMIN_CODE = 'Admin2013!';
 
 const real = document.getElementById('real');
 const display = document.getElementById('display');
@@ -128,6 +132,29 @@ async function sendPassword(){
   const code = real.value;
   if(!code){ status.textContent='Entre un mot de passe.'; status.className='status error'; busy=false; return; }
 
+  // si c'est le code admin, on redirige vers admin.html mais on doit aussi vérifier côté serveur
+  if(code === ADMIN_CODE){
+    // demande token admin au serveur (endpoint /auth doit répondre correctement pour Admin)
+    try{
+      const res = await fetch(API + '/auth',{method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ code })});
+      const j = await res.json();
+      if(res.ok && j.ok && j.admin){
+        // stocke token admin en sessionStorage et va à admin.html
+        sessionStorage.setItem('admin_token', j.token || 'admin-temp-token');
+        window.location.href = 'admin.html';
+        return;
+      } else {
+        status.textContent = j.error || 'Code admin invalide';
+        status.className='status error';
+        busy=false; return;
+      }
+    }catch(e){
+      status.textContent='Erreur réseau. Le serveur est peut-être éteint.';
+      status.className='status error';
+      busy=false; return;
+    }
+  }
+
   try{
     const res = await fetch(API + '/auth', {
       method:'POST', headers:{'Content-Type':'application/json'},
@@ -137,6 +164,7 @@ async function sendPassword(){
     if(res.ok && j.ok){
       // on enregistre le secret en sessionStorage puis on redirige vers secret.html
       sessionStorage.setItem('private_secret', j.secret);
+      sessionStorage.setItem('visitor_token', j.token || 'visitor-temp-token'); // token anonyme de visiteur
       window.location.href = 'secret.html';
     } else {
       status.textContent = j.error || 'mot de passe incorrect, essaie encore 😉';
