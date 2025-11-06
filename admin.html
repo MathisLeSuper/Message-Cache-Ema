@@ -1,19 +1,54 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Admin Panel</title>
+<style>
+:root{
+  --bg:#070708; --text:#e9eef2; --accent:#ff7a18; --accent-2:#ffb56b; --card:#1c1c1f; --card-light:#2c2c2f;
+}
+body{margin:0;font-family:Inter,system-ui,Arial,sans-serif;background:var(--bg);color:var(--text);padding:24px;}
+h1{font-size:28px;background:linear-gradient(90deg,#fff 0%,var(--accent-2)40%,var(--accent)100%);-webkit-background-clip:text;color:transparent;}
+.container{max-width:900px;margin:0 auto;}
+.tabs{display:flex;gap:12px;margin-bottom:16px;}
+.tab{padding:10px 16px;border-radius:12px;cursor:pointer;background:var(--card);color:var(--text);font-weight:700;}
+.tab.active{background:linear-gradient(180deg,var(--accent),var(--accent-2));color:#051014;}
+.card{background:var(--card-light);padding:16px;border-radius:12px;margin-bottom:12px;}
+table{width:100%;border-collapse:collapse;}
+th,td{padding:8px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.1);}
+#status{margin-bottom:12px;color:var(--accent);}
+#refreshBtn{margin-bottom:16px;padding:8px 16px;border:none;border-radius:8px;background:var(--accent);color:#051014;font-weight:700;cursor:pointer;}
+</style>
+</head>
+<body>
+<a href="index.html" style="display:inline-block;margin-bottom:16px;color:#ff7a18;font-weight:700;">← Retour</a>
+<div class="container">
+  <h1>Admin Panel</h1>
+  <button id="refreshBtn">Actualiser</button>
+  <div class="tabs">
+    <div class="tab active" data-tab="stats">Stats</div>
+    <div class="tab" data-tab="messages">Messages</div>
+    <div class="tab" data-tab="attempts">Tentatives</div>
+  </div>
+  <div id="status">Chargement...</div>
+  <div id="content"></div>
+</div>
+
 <script>
 const API = 'https://pearlier-captivatingly-so.ngrok-free.dev';
 const tabs = document.querySelectorAll('.tab');
 const content = document.getElementById('content');
 const status = document.getElementById('status');
-const refreshBtn = document.createElement('button');
-refreshBtn.textContent = 'Actualiser';
-refreshBtn.style.cssText = 'padding:8px 12px;margin-bottom:12px;';
-document.querySelector('.container').insertBefore(refreshBtn, content);
+const refreshBtn = document.getElementById('refreshBtn');
 
 let dbData = { messages: [], attempts: [] };
 
+// Fonction pour charger les données depuis le serveur
 async function loadData(){
-  status.textContent = 'Chargement...';
+  status.textContent = 'Chargement des données...';
   try {
-    const res = await fetch(API+'/stats');
+    const res = await fetch(API + '/stats');
     if(!res.ok) throw new Error('Erreur réseau');
     const data = await res.json();
     dbData.messages = data.messages || [];
@@ -27,37 +62,47 @@ async function loadData(){
   }
 }
 
+// Fonction pour afficher chaque onglet
 function renderTab(tab){
   tabs.forEach(t => t.classList.remove('active'));
   document.querySelector(`.tab[data-tab="${tab}"]`).classList.add('active');
-  let html = '';
 
-  if(tab==='stats'){
-    html=`<div class="card">Messages: ${dbData.messages.length}<br>Tentatives: ${dbData.attempts.length}</div>`;
-  } else if(tab==='messages'){
-    html='<table><tr><th>Date</th><th>Nom</th><th>Email</th><th>Message</th></tr>';
-    dbData.messages.forEach(m => {
-      if(m.name||m.email||m.message)
-        html+=`<tr><td>${new Date(m.date).toLocaleString()}</td><td>${m.name}</td><td>${m.email}</td><td>${m.message}</td></tr>`;
+  let html = '';
+  if(tab === 'stats'){
+    html = `<div class="card">Nombre de messages: ${dbData.messages.length}<br>Nombre de tentatives: ${dbData.attempts.length}</div>`;
+  } else if(tab === 'messages'){
+    html = '<table><tr><th>Date</th><th>Nom</th><th>Email</th><th>Message</th></tr>';
+    (dbData.messages || []).forEach(m => {
+      if(m.name || m.email || m.message) // ignore empty messages
+        html += `<tr><td>${new Date(m.date).toLocaleString()}</td><td>${m.name}</td><td>${m.email}</td><td>${m.message}</td></tr>`;
     });
-    html+='</table>';
-  } else if(tab==='attempts'){
-    html='<table><tr><th>Date</th><th>Code tenté</th></tr>';
-    dbData.attempts.forEach(a=>{
-      html+=`<tr><td>${new Date(a.date).toLocaleString()}</td><td>${a.code}</td></tr>`;
+    html += '</table>';
+  } else if(tab === 'attempts'){
+    html = '<table><tr><th>Date</th><th>Code tenté</th></tr>';
+    (dbData.attempts || []).forEach(a => {
+      html += `<tr><td>${new Date(a.date).toLocaleString()}</td><td>${a.code}</td></tr>`;
     });
-    html+='</table>';
+    html += '</table>';
   }
+
   content.innerHTML = html;
 }
 
-tabs.forEach(tab=>tab.addEventListener('click', ()=>renderTab(tab.dataset.tab)));
+// Click sur les onglets
+tabs.forEach(tab => {
+  tab.addEventListener('click', () => renderTab(tab.dataset.tab));
+});
+
+// Bouton actualiser
 refreshBtn.addEventListener('click', loadData);
 
-// Vérifie si admin connecté via index.html
-if(sessionStorage.getItem('admin_logged')==='true'){
+// Vérifie si l’admin est connecté via index.html
+if(sessionStorage.getItem('admin_logged') === 'true'){
   loadData();
 } else {
-  window.location.href='index.html'; // pas d'accès direct via URL
+  status.textContent = 'Accès interdit';
+  content.innerHTML = '<p>Vous devez vous connecter via la page d\'accueil.</p>';
 }
 </script>
+</body>
+</html>
